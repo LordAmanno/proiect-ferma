@@ -1,0 +1,25 @@
+# Visual Studio
+.vs/
+bin/
+obj/
+*.user
+*.suo
+*.userosscache
+*.sln.docstates
+
+# VS Code
+.vscode/
+
+# Node
+node_modules/
+npm-debug.log
+yarn-error.log
+
+# Operating System
+.DS_Store
+Thumbs.db
+
+# Dotnet
+*.lock.json
+appsettings.Development.json
+*.local.json
