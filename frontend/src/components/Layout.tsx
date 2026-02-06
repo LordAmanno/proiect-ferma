@@ -1,10 +1,12 @@
 import { useState } from 'react';
 import { Link, Outlet, useLocation } from 'react-router-dom';
-import { LayoutDashboard, Package, Wallet, Sprout, Users, FileText, Bot, Menu, ChevronLeft } from 'lucide-react';
+import { LayoutDashboard, Package, Wallet, Sprout, Users, FileText, Bot, Menu, ChevronLeft, LogOut, Settings, User } from 'lucide-react';
 import ChatWidget from './ChatWidget';
+import { useAuth } from '../context/AuthContext';
 
 export default function Layout() {
   const location = useLocation();
+  const { user, signOut } = useAuth();
   const [isAssistantOpen, setIsAssistantOpen] = useState(false);
   const [isSidebarOpen, setIsSidebarOpen] = useState(true);
   const [isTextVisible, setIsTextVisible] = useState(true);
@@ -88,7 +90,44 @@ export default function Layout() {
           </button>
         </nav>
         
-        {isSidebarOpen && <div className="p-4 border-t dark:border-gray-800 space-y-4" />}
+        {/* User Profile Section */}
+        <div className="p-4 border-t dark:border-gray-800">
+          <div className={`flex items-center ${!isSidebarOpen ? 'justify-center' : 'space-x-3'}`}>
+            <div className="w-8 h-8 rounded-full bg-green-100 dark:bg-green-900 flex items-center justify-center shrink-0">
+              <User size={16} className="text-green-700 dark:text-green-400" />
+            </div>
+            
+            {isSidebarOpen && (
+              <div className={`flex-1 overflow-hidden transition-opacity duration-200 ${isTextVisible ? 'opacity-100' : 'opacity-0'}`}>
+                <p className="text-sm font-medium text-gray-900 dark:text-white truncate">
+                  {user?.email?.split('@')[0]}
+                </p>
+                <p className="text-xs text-gray-500 dark:text-gray-400 truncate" title={user?.email}>
+                  {user?.email}
+                </p>
+              </div>
+            )}
+          </div>
+
+          {isSidebarOpen && (
+            <div className={`mt-4 space-y-1 transition-opacity duration-200 ${isTextVisible ? 'opacity-100' : 'opacity-0'}`}>
+              <Link 
+                to="/settings"
+                className="w-full flex items-center space-x-3 px-2 py-2 rounded-lg text-sm text-gray-600 hover:bg-gray-50 dark:text-gray-400 dark:hover:bg-gray-800 transition-colors"
+              >
+                <Settings size={16} />
+                <span>Settings</span>
+              </Link>
+              <button 
+                onClick={signOut}
+                className="w-full flex items-center space-x-3 px-2 py-2 rounded-lg text-sm text-red-600 hover:bg-red-50 dark:text-red-400 dark:hover:bg-red-900/20 transition-colors"
+              >
+                <LogOut size={16} />
+                <span>Sign Out</span>
+              </button>
+            </div>
+          )}
+        </div>
       </aside>
       
       {/* Main Content Area */}

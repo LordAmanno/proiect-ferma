@@ -1,6 +1,6 @@
 import { createContext } from 'react';
 
-export type CurrencyCode = 'EUR';
+export type CurrencyCode = 'EUR' | 'USD' | 'RON' | 'GBP' | 'MDL' | 'BGN' | 'CZK' | 'DKK' | 'HUF' | 'PLN' | 'SEK';
 
 export interface CurrencyContextType {
   currency: CurrencyCode;
@@ -8,6 +8,7 @@ export interface CurrencyContextType {
   error: string | null;
   formatMoney: (amount: number) => string;
   convert: (amount: number) => number;
+  setCurrency: (currency: CurrencyCode) => void;
 }
 
 export const CurrencyContext = createContext<CurrencyContextType | undefined>(undefined);
