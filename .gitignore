@@ -23,3 +23,6 @@ Thumbs.db
 *.lock.json
 appsettings.Development.json
 *.local.json
+
+# Storage
+backend/Storage/

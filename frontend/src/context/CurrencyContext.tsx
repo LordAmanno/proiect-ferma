@@ -1,4 +1,4 @@
-import { useState, useEffect, ReactNode } from 'react';
+import { useState, useEffect, type ReactNode } from 'react';
 import { CurrencyContext, type CurrencyCode } from './CurrencyContextBase';
 
 export const CurrencyProvider = ({ children }: { children: ReactNode }) => {

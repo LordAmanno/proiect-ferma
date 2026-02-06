@@ -15,7 +15,7 @@ export default function Dashboard() {
   const { formatMoney } = useCurrency();
   const todayDate = format(new Date(), 'EEEE, d MMMM');
 
-  const loading = weatherLoading || financeLoading || tasksLoading || cropsLoading;
+  const loading = financeLoading || tasksLoading || cropsLoading;
 
   // Calculate active tasks
   const activeTasks = tasks.filter(t => t.status !== 'Completed').length;
@@ -51,8 +51,15 @@ export default function Dashboard() {
       <h2 className="text-2xl font-bold text-gray-800 dark:text-white">Farm Overview</h2>
       
       {/* Weather Section */}
-      {weatherError ? (
-        <div className="flex items-center justify-center h-96 text-red-500">
+      {weatherLoading ? (
+        <div className="flex items-center justify-center h-96 bg-gray-50 dark:bg-gray-800 rounded-2xl animate-pulse">
+          <div className="flex flex-col items-center gap-4">
+             <Loader2 className="animate-spin text-blue-500" size={48} />
+             <p className="text-gray-500 dark:text-gray-400">Loading weather forecast...</p>
+          </div>
+        </div>
+      ) : weatherError ? (
+        <div className="flex items-center justify-center h-96 text-red-500 bg-red-50 dark:bg-red-900/10 rounded-2xl border border-red-200 dark:border-red-800">
           <p>{weatherError}</p>
         </div>
       ) : weather && (

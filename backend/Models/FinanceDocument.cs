@@ -26,4 +26,7 @@ public class FinanceDocument : BaseModel
 
     [Column("uploaded_at")]
     public DateTime UploadedAt { get; set; }
+
+    [Column("user_id")]
+    public Guid UserId { get; set; }
 }

@@ -100,7 +100,7 @@ export default function Layout() {
             {isSidebarOpen && (
               <div className={`flex-1 overflow-hidden transition-opacity duration-200 ${isTextVisible ? 'opacity-100' : 'opacity-0'}`}>
                 <p className="text-sm font-medium text-gray-900 dark:text-white truncate">
-                  {user?.email?.split('@')[0]}
+                  {user?.user_metadata?.full_name || user?.email?.split('@')[0]}
                 </p>
                 <p className="text-xs text-gray-500 dark:text-gray-400 truncate" title={user?.email}>
                   {user?.email}

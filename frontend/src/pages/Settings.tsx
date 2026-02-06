@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { useAuth } from '../context/AuthContext';
+import { useAuth, supabase } from '../context/AuthContext';
 import { useTheme } from '../context/ThemeContext';
 import { useCurrency } from '../context/useCurrency';
 import { User, Bell, Shield, Smartphone, Mail, Save, Loader2, Moon, Sun, Wallet } from 'lucide-react';
@@ -19,9 +19,10 @@ export default function Settings() {
   const [twoFactor, setTwoFactor] = useState(false);
 
   useEffect(() => {
-    // In a real app, fetch profile data here
-    if (user?.email) {
-      setFullName(user.email.split('@')[0]); // Default name from email
+    if (user) {
+      // Use metadata name if available, otherwise fallback to email
+      const metaName = user.user_metadata?.full_name;
+      setFullName(metaName || user.email?.split('@')[0] || '');
     }
   }, [user]);
 
@@ -29,14 +30,21 @@ export default function Settings() {
     setIsLoading(true);
     setSuccessMessage(null);
     
-    // Simulate API call
-    setTimeout(() => {
-      setIsLoading(false);
+    try {
+      const { error } = await supabase.auth.updateUser({
+        data: { full_name: fullName }
+      });
+
+      if (error) throw error;
+
       setSuccessMessage('Settings saved successfully!');
-      
-      // Clear message after 3 seconds
+    } catch (error) {
+      console.error('Error updating profile:', error);
+      // You might want to set an error message state here too
+    } finally {
+      setIsLoading(false);
       setTimeout(() => setSuccessMessage(null), 3000);
-    }, 1000);
+    }
   };
 
   return (
@@ -127,6 +135,11 @@ export default function Settings() {
                 type="text"
                 value={fullName}
                 onChange={(e) => setFullName(e.target.value)}
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter') {
+                    handleSave();
+                  }
+                }}
                 className="w-full px-4 py-2 border dark:border-gray-700 rounded-lg bg-gray-50 dark:bg-gray-800 text-gray-900 dark:text-white focus:ring-2 focus:ring-green-500 outline-none"
               />
             </div>
@@ -152,7 +165,10 @@ export default function Settings() {
             <div className="p-2 bg-blue-100 dark:bg-blue-900/30 rounded-lg">
               <Bell className="text-blue-600 dark:text-blue-400" size={20} />
             </div>
-            <h2 className="text-lg font-semibold text-gray-900 dark:text-white">Notifications</h2>
+            <div className="flex items-center gap-2">
+              <h2 className="text-lg font-semibold text-gray-900 dark:text-white">Notifications</h2>
+              <span className="text-xs font-medium text-red-500 bg-red-100 dark:bg-red-900/20 px-2 py-0.5 rounded-full">(Not working)</span>
+            </div>
           </div>
 
           <div className="space-y-4">
@@ -196,7 +212,10 @@ export default function Settings() {
             <div className="p-2 bg-purple-100 dark:bg-purple-900/30 rounded-lg">
               <Shield className="text-purple-600 dark:text-purple-400" size={20} />
             </div>
-            <h2 className="text-lg font-semibold text-gray-900 dark:text-white">Security</h2>
+            <div className="flex items-center gap-2">
+              <h2 className="text-lg font-semibold text-gray-900 dark:text-white">Security</h2>
+              <span className="text-xs font-medium text-red-500 bg-red-100 dark:bg-red-900/20 px-2 py-0.5 rounded-full">(Not working)</span>
+            </div>
           </div>
 
           <div className="flex items-center justify-between p-4 bg-gray-50 dark:bg-gray-800/50 rounded-lg">

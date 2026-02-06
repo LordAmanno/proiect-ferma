@@ -1,10 +1,17 @@
 using Supabase;
+using Microsoft.AspNetCore.Authentication.JwtBearer;
+using Microsoft.IdentityModel.Tokens;
+using System.Text;
+using backend.Services;
 
 var builder = WebApplication.CreateBuilder(args);
 
 // Add services to the container.
 builder.Services.AddControllers();
 builder.Services.AddOpenApi();
+
+// Register FileStorageService
+builder.Services.AddSingleton<FileStorageService>();
 
 builder.Services.AddCors(options =>
 {
@@ -22,15 +29,39 @@ var key = builder.Configuration["Supabase:Key"];
 
 if (string.IsNullOrEmpty(url) || string.IsNullOrEmpty(key))
 {
-    // In development, we might not have these set yet, so we can warn or throw.
-    // For now, let's just initialize with empty strings or handle it gracefully if possible,
-    // but Client expects non-null.
-    // Better to throw if missing as the app relies on it.
-    // However, for build purposes, we can leave it as is but supress warning or ensure it's not null.
-    // Let's provide a default or throw.
     url ??= "";
     key ??= "";
 }
+
+// Configure JWT Authentication (Using JWKS for modern Supabase projects)
+builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
+    .AddJwtBearer(options =>
+    {
+        options.MetadataAddress = $"{url}/auth/v1/.well-known/openid-configuration";
+        options.TokenValidationParameters = new TokenValidationParameters
+        {
+            ValidateIssuer = true,
+            ValidIssuer = $"{url}/auth/v1",
+            ValidateAudience = true,
+            ValidAudience = "authenticated",
+            ValidateLifetime = true,
+            ValidateIssuerSigningKey = true // Key will be fetched automatically from MetadataAddress
+        };
+        
+        // Allow reading token from Query String (for images/downloads)
+        options.Events = new JwtBearerEvents
+        {
+            OnMessageReceived = context =>
+            {
+                var accessToken = context.Request.Query["access_token"];
+                if (!string.IsNullOrEmpty(accessToken))
+                {
+                    context.Token = accessToken;
+                }
+                return Task.CompletedTask;
+            }
+        };
+    });
 
 var options = new SupabaseOptions
 {
@@ -56,6 +87,7 @@ if (app.Environment.IsDevelopment())
 
 // app.UseHttpsRedirection();
 app.UseCors("AllowAll");
+app.UseAuthentication(); // ⬅️ Enable Auth Middleware
 app.UseAuthorization();
 app.MapControllers();
 
