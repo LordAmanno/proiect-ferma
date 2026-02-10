@@ -58,5 +58,32 @@ export function useCrops() {
     }
   };
 
-  return { crops, fields, loading, error, addCrop };
+  const addField = async (field: Omit<Field, 'id'>) => {
+    try {
+      const newField = await fetchJson<Field>('/fields', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(field),
+      });
+      setFields(prev => [...prev, newField]);
+      return newField;
+    } catch (err) {
+      console.error('Failed to add field:', err);
+      throw err;
+    }
+  };
+
+  const deleteField = async (id: string) => {
+    try {
+      await fetchJson(`/fields/${id}`, {
+        method: 'DELETE',
+      });
+      setFields(prev => prev.filter(f => f.id !== id));
+    } catch (err) {
+      console.error('Failed to delete field:', err);
+      throw err;
+    }
+  };
+
+  return { crops, fields, loading, error, addCrop, addField, deleteField };
 }

@@ -1,12 +1,17 @@
 import { useState } from 'react';
-import { Map, Sprout, Calendar, Loader2, X } from 'lucide-react';
-import { useCrops, type Crop } from '../hooks/useCrops';
+import { Map, Sprout, Calendar, Loader2, X, Plus, Trash2 } from 'lucide-react';
+import { useCrops, type Crop, type Field } from '../hooks/useCrops';
 import { format, parseISO } from 'date-fns';
+import { ConfirmationModal } from '../components/ConfirmationModal';
 
 export default function Crops() {
-  const { crops, fields, loading, error, addCrop } = useCrops();
+  const { crops, fields, loading, error, addCrop, addField, deleteField } = useCrops();
   const [isModalOpen, setIsModalOpen] = useState(false);
+  const [isFieldModalOpen, setIsFieldModalOpen] = useState(false);
+  const [showDeleteFieldModal, setShowDeleteFieldModal] = useState(false);
+  const [fieldToDelete, setFieldToDelete] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  
   const [formData, setFormData] = useState<Omit<Crop, 'id'>>({
     name: '',
     variety: '',
@@ -16,9 +21,22 @@ export default function Crops() {
     status: 'Planted',
   });
 
+  const [fieldFormData, setFieldFormData] = useState<Omit<Field, 'id'>>({
+    name: '',
+    areaHectares: 0,
+    locationCoordinates: '',
+    soilType: '',
+    status: 'Active',
+  });
+
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
     const { name, value } = e.target;
     setFormData(prev => ({ ...prev, [name]: value }));
+  };
+
+  const handleFieldInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
+    const { name, value } = e.target;
+    setFieldFormData(prev => ({ ...prev, [name]: value }));
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -47,6 +65,47 @@ export default function Crops() {
     }
   };
 
+  const handleFieldSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setIsSubmitting(true);
+    try {
+      await addField({
+        ...fieldFormData,
+        areaHectares: Number(fieldFormData.areaHectares)
+      });
+      setIsFieldModalOpen(false);
+      setFieldFormData({
+        name: '',
+        areaHectares: 0,
+        locationCoordinates: '',
+        soilType: '',
+        status: 'Active',
+      });
+    } catch (err) {
+      console.error(err);
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+  const handleDeleteFieldClick = (id: string) => {
+    setFieldToDelete(id);
+    setShowDeleteFieldModal(true);
+  };
+
+  const handleConfirmDeleteField = async () => {
+    if (fieldToDelete) {
+      try {
+        await deleteField(fieldToDelete);
+        setShowDeleteFieldModal(false);
+        setFieldToDelete(null);
+      } catch (err) {
+        console.error(err);
+        alert("Failed to delete field. It might be in use.");
+      }
+    }
+  };
+
   if (loading) {
     return (
       <div className="flex justify-center items-center h-64">
@@ -67,12 +126,20 @@ export default function Crops() {
     <div className="space-y-6">
       <div className="flex justify-between items-center">
         <h2 className="text-2xl font-bold text-gray-800 dark:text-white">Field & Crop Management</h2>
-        <button 
-          onClick={() => setIsModalOpen(true)}
-          className="bg-green-600 text-white px-4 py-2 rounded-lg flex items-center gap-2 hover:bg-green-700"
-        >
-          <Sprout size={20} /> Register New Crop
-        </button>
+        <div className="flex gap-3">
+          <button 
+            onClick={() => setIsFieldModalOpen(true)}
+            className="bg-blue-600 text-white px-4 py-2 rounded-lg flex items-center gap-2 hover:bg-blue-700"
+          >
+            <Map size={20} /> Add Field
+          </button>
+          <button 
+            onClick={() => setIsModalOpen(true)}
+            className="bg-green-600 text-white px-4 py-2 rounded-lg flex items-center gap-2 hover:bg-green-700"
+          >
+            <Sprout size={20} /> Register New Crop
+          </button>
+        </div>
       </div>
 
       {/* Fields Grid */}
@@ -86,6 +153,16 @@ export default function Crops() {
               <div className="absolute top-0 right-0 p-4 opacity-10 group-hover:opacity-20 transition-opacity">
                 <Map size={64} className="text-green-600 dark:text-green-500" />
               </div>
+              <button 
+                onClick={(e) => {
+                  e.stopPropagation();
+                  handleDeleteFieldClick(field.id);
+                }}
+                className="absolute top-4 right-4 p-2 bg-white dark:bg-gray-800 text-gray-400 hover:text-red-500 rounded-lg shadow-sm opacity-0 group-hover:opacity-100 transition-opacity z-20"
+                title="Delete Field"
+              >
+                <Trash2 size={18} />
+              </button>
               <div className="relative z-10">
                 <h4 className="text-xl font-bold text-gray-900 dark:text-white">{field.name}</h4>
                 <p className="text-sm text-gray-500 dark:text-gray-400">{field.areaHectares} Hectares • {field.soilType || 'Unknown Soil'}</p>
@@ -206,12 +283,11 @@ export default function Crops() {
                 </label>
                 <select
                   name="fieldId"
-                  required
                   value={formData.fieldId}
                   onChange={handleInputChange}
                   className="w-full px-4 py-2 rounded-lg border border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-800 text-gray-900 dark:text-white focus:ring-2 focus:ring-green-500 outline-none"
                 >
-                  <option value="">Select a field</option>
+                  <option value="">Select Field</option>
                   {fields.map(field => (
                     <option key={field.id} value={field.id}>{field.name}</option>
                   ))}
@@ -246,25 +322,7 @@ export default function Crops() {
                 </div>
               </div>
 
-              <div>
-                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-                  Status
-                </label>
-                <select
-                  name="status"
-                  required
-                  value={formData.status}
-                  onChange={handleInputChange}
-                  className="w-full px-4 py-2 rounded-lg border border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-800 text-gray-900 dark:text-white focus:ring-2 focus:ring-green-500 outline-none"
-                >
-                  <option value="Planted">Planted</option>
-                  <option value="Growing">Growing</option>
-                  <option value="Ready to Harvest">Ready to Harvest</option>
-                  <option value="Harvested">Harvested</option>
-                </select>
-              </div>
-
-              <div className="flex gap-3 mt-6">
+              <div className="pt-4 flex gap-3">
                 <button
                   type="button"
                   onClick={() => setIsModalOpen(false)}
@@ -284,6 +342,113 @@ export default function Crops() {
           </div>
         </div>
       )}
+
+      {/* Add Field Modal */}
+      {isFieldModalOpen && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+          <div className="bg-white dark:bg-gray-900 rounded-xl shadow-lg w-full max-w-md overflow-hidden">
+            <div className="flex justify-between items-center p-6 border-b border-gray-100 dark:border-gray-800">
+              <h3 className="text-xl font-bold text-gray-900 dark:text-white">Add New Field</h3>
+              <button 
+                onClick={() => setIsFieldModalOpen(false)}
+                className="text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200"
+              >
+                <X size={24} />
+              </button>
+            </div>
+            
+            <form onSubmit={handleFieldSubmit} className="p-6 space-y-4">
+              <div>
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                  Field Name
+                </label>
+                <input
+                  type="text"
+                  name="name"
+                  required
+                  value={fieldFormData.name}
+                  onChange={handleFieldInputChange}
+                  className="w-full px-4 py-2 rounded-lg border border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-800 text-gray-900 dark:text-white focus:ring-2 focus:ring-blue-500 outline-none"
+                  placeholder="e.g. North Field"
+                />
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                  Area (Hectares)
+                </label>
+                <input
+                  type="number"
+                  name="areaHectares"
+                  required
+                  min="0"
+                  step="0.1"
+                  value={fieldFormData.areaHectares}
+                  onChange={handleFieldInputChange}
+                  className="w-full px-4 py-2 rounded-lg border border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-800 text-gray-900 dark:text-white focus:ring-2 focus:ring-blue-500 outline-none"
+                  placeholder="0.0"
+                />
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                  Soil Type (Optional)
+                </label>
+                <input
+                  type="text"
+                  name="soilType"
+                  value={fieldFormData.soilType}
+                  onChange={handleFieldInputChange}
+                  className="w-full px-4 py-2 rounded-lg border border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-800 text-gray-900 dark:text-white focus:ring-2 focus:ring-blue-500 outline-none"
+                  placeholder="e.g. Clay Loam"
+                />
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                  Coordinates (Optional)
+                </label>
+                <input
+                  type="text"
+                  name="locationCoordinates"
+                  value={fieldFormData.locationCoordinates}
+                  onChange={handleFieldInputChange}
+                  className="w-full px-4 py-2 rounded-lg border border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-800 text-gray-900 dark:text-white focus:ring-2 focus:ring-blue-500 outline-none"
+                  placeholder="e.g. 45.123, 23.456"
+                />
+              </div>
+
+              <div className="pt-4 flex gap-3">
+                <button
+                  type="button"
+                  onClick={() => setIsFieldModalOpen(false)}
+                  className="flex-1 px-4 py-2 text-gray-700 bg-gray-100 hover:bg-gray-200 dark:bg-gray-800 dark:text-gray-300 dark:hover:bg-gray-700 rounded-lg transition-colors"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  disabled={isSubmitting}
+                  className="flex-1 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors disabled:opacity-50 flex justify-center items-center gap-2"
+                >
+                  {isSubmitting ? <Loader2 className="w-4 h-4 animate-spin" /> : 'Add Field'}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* Delete Field Confirmation Modal */}
+      <ConfirmationModal
+        isOpen={showDeleteFieldModal}
+        onClose={() => setShowDeleteFieldModal(false)}
+        onConfirm={handleConfirmDeleteField}
+        title="Delete Field"
+        message="Are you sure you want to delete this field? This action cannot be undone."
+        confirmText="Delete"
+        cancelText="Cancel"
+      />
     </div>
   );
 }
